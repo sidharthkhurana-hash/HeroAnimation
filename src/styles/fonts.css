@@ -1,0 +1,34 @@
+/* ── Mulish — bundled via @fontsource-variable/mulish ──────────────────────────
+   Vite processes this import and copies the woff2 files into the build output.
+   The variable font registers as 'Mulish Variable'; the @font-face block below
+   re-aliases it as 'Mulish' so all existing fontFamily references work unchanged. */
+@import '@fontsource-variable/mulish';
+
+@font-face {
+  font-family: 'Mulish';
+  src: local('Mulish Variable');
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mulish';
+  src: local('Mulish Variable');
+  font-weight: 200 1000;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* ── Brulia — proprietary display serif ────────────────────────────────────────
+   Not available as an npm package, so served from CDN (standard web-font delivery).
+   The browser downloads and caches it on first visit — users without the font
+   installed will still see it correctly.
+   To fully self-host: place Brulia.woff2 in /public/fonts/ and update src below. */
+@font-face {
+  font-family: 'Brulia';
+  src: url('https://fonts.cdnfonts.com/s/29107/Brulia-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

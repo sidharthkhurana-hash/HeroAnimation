@@ -1,0 +1,17 @@
+{
+  "library": {
+    "name": "Heroanimation",
+    "components": [
+      "./src/**/*.webflow.@(js|jsx|mjs|ts|tsx)"
+    ],
+    "description": "hero animation",
+    "id": "heroanimation"
+  },
+  "telemetry": {
+    "global": {
+      "allowTelemetry": false,
+      "lastPrompted": 1773174358855,
+      "version": "1.12.4"
+    }
+  }
+}
