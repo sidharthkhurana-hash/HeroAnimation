@@ -70,7 +70,7 @@
     "@vitejs/plugin-react": "4.7.0",
     "@webflow/data-types": "^1.2.1",
     "@webflow/react": "^1.2.1",
-    "@webflow/webflow-cli": "^1.12.4",
+    "@webflow/webflow-cli": "^1.12.6",
     "tailwindcss": "4.1.12",
     "vite": "6.3.5"
   },

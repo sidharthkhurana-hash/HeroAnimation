@@ -295,7 +295,7 @@ function TimelineSlider({ phase, onSeek, onLiveSeek }: TimelineSliderProps) {
     <div
       style={{
         position: "absolute",
-        bottom: 0, left: 0, right: 0,
+        bottom: 20, left: 0, right: 0,
         height: "62px",
         zIndex: 25,
         pointerEvents: "none",
