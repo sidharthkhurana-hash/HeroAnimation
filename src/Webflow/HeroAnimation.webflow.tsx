@@ -1,19 +1,29 @@
 import { declareComponent } from "@webflow/react";
-//import "../styles/webflow-tailwind.css";
+import tailwindCss from "../styles/webflow-tailwind.css?raw";
 import { HeroAnimation } from "../app/components/HeroAnimation";
+
+const heroStyles = (
+  <style
+    dangerouslySetInnerHTML={{ __html: tailwindCss }}
+    data-origin="HeroAnimation"
+  />
+);
 
 function HeroAnimationWrapper() {
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "100vh",
-        overflow: "hidden",
-      }}
-    >
-      <HeroAnimation />
-    </div>
+    <>
+      {heroStyles}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100vh",
+          overflow: "hidden",
+        }}
+      >
+        <HeroAnimation />
+      </div>
+    </>
   );
 }
 
