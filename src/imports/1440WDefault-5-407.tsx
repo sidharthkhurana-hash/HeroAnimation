@@ -1,4 +1,4 @@
-import { useInlineTailwind } from "../lib/useInlineTailwind";
+import "../styles/webflow-tailwind.css";
 import svgPaths from "./svg-9g1l7k05js";
 import imgVoyagerCapitalLogo from "figma:asset/2b5f0e084381253b66402f9b70871fc748d051ce.png";
 import imgSalesforceVenturesLogo from "figma:asset/9b5b9c26bd5d292de64437c18d932397f09525d8.png";
@@ -2126,10 +2126,8 @@ function Banner() {
 }
 
 export default function Component1440WDefault() {
-  const rootRef = useInlineTailwind();
-
   return (
-    <div ref={rootRef} className="bg-white relative size-full" data-name="1440w default">
+    <div className="bg-white relative size-full" data-name="1440w default">
       <ButtonCookiePreferences />
       <Main />
       <Footer />

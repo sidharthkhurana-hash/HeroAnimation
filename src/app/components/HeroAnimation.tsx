@@ -8,7 +8,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { NodeField } from "./NodeField";
 import { CascadePanel } from "./CascadePanel";
 import { FinalHero } from "./FinalHero";
-import { useInlineTailwind } from "../../lib/useInlineTailwind";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -446,8 +445,8 @@ export function HeroAnimation() {
   const [patternPos, setPatternPos] = useState<Record<number, { x: number; y: number }>>({});
   // Delayed text reveal — "Attackers Exploit Systems, Not CVEs." appears after labels
   const [textVisible, setTextVisible] = useState(false);
-  // Viewport size for responsive label clamping and inline Tailwind conversion
-  const containerRef = useInlineTailwind<HTMLDivElement>();
+  // Viewport size for responsive label clamping
+  const containerRef = useRef<HTMLDivElement>(null);
   const [vp, setVp] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
