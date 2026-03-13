@@ -440,6 +440,7 @@ export function HeroAnimation() {
   const [phase,    setPhase]    = useState<Phase>("chaos");
   const [resetKey, setResetKey] = useState(0);
   const [cascadeClickActive, setCascadeClickActive] = useState(false);
+  const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
 
   // Pattern node pixel positions (reported by NodeField once connections start)
   const [patternPos, setPatternPos] = useState<Record<number, { x: number; y: number }>>({});
@@ -466,6 +467,24 @@ export function HeroAnimation() {
 
   const isMobile = vp.w < 640;
   const isTablet = vp.w < 1024;
+
+  useEffect(() => {
+    if (hasEnteredViewport) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting) {
+          setHasEnteredViewport(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.35, rootMargin: "0px 0px -15%" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasEnteredViewport]);
 
   const overlayRefs = useRef<Array<HTMLDivElement | null>>(new Array(6).fill(null));
   const triageRefs  = useRef<Array<HTMLDivElement | null>>(new Array(6).fill(null));
@@ -502,6 +521,7 @@ export function HeroAnimation() {
 
   // ── Single effect drives ALL phase auto-advancement ───────────────────────
   useEffect(() => {
+    if (!hasEnteredViewport) return undefined;
     let t: ReturnType<typeof setTimeout> | undefined;
     if (phase === "chaos")     t = setTimeout(() => setPhase("triage"),    4000);
     if (phase === "triage")    t = setTimeout(() => setPhase("drop"),      5200);
@@ -511,21 +531,21 @@ export function HeroAnimation() {
     if (phase === "cascade")   t = setTimeout(() => setPhase("dissolve"),  4800);
     if (phase === "dissolve")  t = setTimeout(() => setPhase("final"),     2600);
     return () => { if (t !== undefined) clearTimeout(t); };
-  }, [phase]);
+  }, [phase, hasEnteredViewport]);
 
   // ── Delayed text reveal during "formed" phase ─────────────────────────────
   useEffect(() => {
-    if (phase !== "formed") { setTextVisible(false); return; }
+    if (!hasEnteredViewport || phase !== "formed") { setTextVisible(false); return; }
     const t = setTimeout(() => setTextVisible(true), FORMED_TEXT_DELAY);
     return () => clearTimeout(t);
-  }, [phase]);
+  }, [phase, hasEnteredViewport]);
 
   // ── Cascade sub-timer: trigger cursor click 2.3s into cascade phase ───────
   useEffect(() => {
-    if (phase !== "cascade") { setCascadeClickActive(false); return; }
+    if (!hasEnteredViewport || phase !== "cascade") { setCascadeClickActive(false); return; }
     const t = setTimeout(() => setCascadeClickActive(true), 2300);
     return () => clearTimeout(t);
-  }, [phase]);
+  }, [phase, hasEnteredViewport]);
 
   const handleConnectionsComplete = useCallback(() => {
     setPhase("formed");
@@ -572,20 +592,22 @@ export function HeroAnimation() {
       />
 
       {/* Canvas layer — keyed so it remounts cleanly on commit seeks */}
-      <NodeField
-        key={resetKey}
-        dropping={isDropping}
-        forming={isForming}
-        onConnectionsComplete={handleConnectionsComplete}
-        highlightNodeIds={isHighlight ? HIGHLIGHT_IDS : []}
-        dimmed={phase === "final"}
-        dissolving={isDissolving}
-        trackCount={6}
-        showTrackedRings={phase === "chaos" || phase === "triage"}
-        onFramePositions={handleFramePositions}
-        onPatternPositions={handlePatternPositions}
-        keepTrackedIndices={[0, 3]}
-      />
+      {hasEnteredViewport && (
+        <NodeField
+          key={resetKey}
+          dropping={isDropping}
+          forming={isForming}
+          onConnectionsComplete={handleConnectionsComplete}
+          highlightNodeIds={isHighlight ? HIGHLIGHT_IDS : []}
+          dimmed={phase === "final"}
+          dissolving={isDissolving}
+          trackCount={6}
+          showTrackedRings={phase === "chaos" || phase === "triage"}
+          onFramePositions={handleFramePositions}
+          onPatternPositions={handlePatternPositions}
+          keepTrackedIndices={[0, 3]}
+        />
+      )}
 
       {/* Chaos-phase overlay cards */}
       <div
@@ -647,7 +669,7 @@ export function HeroAnimation() {
                       <TypewriterText
                         text={data.reason1}
                         startDelay={data.r1Delay}
-                        active={phase === "triage"}
+                        active={hasEnteredViewport && phase === "triage"}
                       />
                     </span>
                   </div>
@@ -657,7 +679,7 @@ export function HeroAnimation() {
                       <TypewriterText
                         text={data.reason2}
                         startDelay={data.r2Delay}
-                        active={phase === "triage"}
+                        active={hasEnteredViewport && phase === "triage"}
                       />
                     </span>
                   </div>
