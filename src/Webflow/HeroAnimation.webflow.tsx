@@ -1,5 +1,5 @@
 import { declareComponent } from "@webflow/react";
-import "../styles/webflow-tailwind.css";
+//import "../styles/webflow-tailwind.css";
 import { HeroAnimation } from "../app/components/HeroAnimation";
 
 function HeroAnimationWrapper() {
