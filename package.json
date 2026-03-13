@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "npm run build:webflow-css && vite build",
+    "build:webflow-css": "node scripts/build-webflow-css.mjs",
     "dev": "vite"
   },
   "dependencies": {

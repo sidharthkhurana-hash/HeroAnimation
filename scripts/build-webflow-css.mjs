@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { compile, optimize } from '@tailwindcss/node';
+import { Scanner } from '@tailwindcss/oxide';
+
+const projectRoot = path.resolve(process.cwd());
+const entryPath = path.resolve(projectRoot, 'src/styles/webflow-tailwind.input.css');
+const outputPath = path.resolve(projectRoot, 'src/styles/webflow-tailwind.css');
+const fontOutputDir = path.resolve(projectRoot, 'src/styles/webflow-fonts');
+
+async function buildStaticCss() {
+  const input = await fs.readFile(entryPath, 'utf8');
+
+  const compiler = await compile(input, {
+    from: entryPath,
+    base: path.dirname(entryPath),
+    shouldRewriteUrls: true,
+    onDependency() {},
+  });
+
+  const scannerSources = (
+    compiler.root === 'none'
+      ? []
+      : compiler.root === null
+        ? [{ base: projectRoot, pattern: '**/*', negated: false }]
+        : [{ ...compiler.root, negated: false }]
+  ).concat(compiler.sources);
+
+  const scanner = new Scanner({ sources: scannerSources });
+  const candidates = Array.from(scanner.scan());
+  let builtCss = compiler.build(candidates);
+
+  // Copy any Mulish font files referenced by @fontsource so the CSS can be uploaded to Webflow.
+  await fs.rm(fontOutputDir, { recursive: true, force: true });
+  await fs.mkdir(fontOutputDir, { recursive: true });
+  const fontPattern = /url\(([^)]+@fontsource-variable\/mulish\/files\/([^)]+\.woff2))\)/g;
+  const replacements = new Map();
+  let match;
+  while ((match = fontPattern.exec(builtCss)) !== null) {
+    const [, rawPath, filename] = match;
+    if (replacements.has(rawPath)) continue;
+    const absoluteFontPath = path.resolve(path.dirname(outputPath), rawPath);
+    const destination = path.join(fontOutputDir, filename);
+    await fs.copyFile(absoluteFontPath, destination);
+    replacements.set(rawPath, `./webflow-fonts/${filename}`);
+  }
+
+  for (const [from, to] of replacements) {
+    builtCss = builtCss.split(from).join(to);
+  }
+
+  const optimized = optimize(builtCss, { minify: true });
+  const css = (optimized && optimized.code) ? optimized.code : builtCss;
+  const banner = '/* Generated via npm run build:webflow-css. Do not edit directly. */\n';
+
+  await fs.writeFile(outputPath, banner + css, 'utf8');
+  const bytes = Buffer.byteLength(css, 'utf8');
+  console.log(`webflow CSS updated: ${path.relative(projectRoot, outputPath)} (${(bytes / 1024).toFixed(1)} kB)`);
+}
+
+buildStaticCss().catch((err) => {
+  console.error('[build-webflow-css] failed');
+  console.error(err);
+  process.exit(1);
+});
