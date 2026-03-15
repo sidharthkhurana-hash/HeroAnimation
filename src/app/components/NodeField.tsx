@@ -375,7 +375,8 @@ function drawHighlightRing(
 
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
 
-const NODE_COUNT = 160;
+const NODE_COUNT_DESKTOP = 160;
+const NODE_COUNT_MOBILE = 100;
 
 interface NodeFieldProps {
   dropping: boolean;
@@ -530,7 +531,8 @@ export function NodeField({
       canvas.height = h;
 
       if (!formingRef.current) {
-        nodesRef.current = buildNodes(canvas.width, canvas.height, NODE_COUNT);
+        const nodeCount = window.innerWidth < 640 ? NODE_COUNT_MOBILE : NODE_COUNT_DESKTOP;
+        nodesRef.current = buildNodes(canvas.width, canvas.height, nodeCount);
         const tc = trackCountRef.current;
         if (tc > 0) {
           const total = nodesRef.current.length;
@@ -761,7 +763,9 @@ export function NodeField({
       rafRef.current = requestAnimationFrame(tick);
     };
 
-    rafRef.current = requestAnimationFrame(tick);
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = requestAnimationFrame(tick);
+    });
     return () => {
       cancelAnimationFrame(rafRef.current);
       ro.disconnect();

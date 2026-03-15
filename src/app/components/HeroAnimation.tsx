@@ -201,16 +201,16 @@ function HeroText({ phase, textVisible }: { phase: Phase; textVisible: boolean }
       }}
     >
       <div style={{ display: "grid", width: "100%" }}>
-        <p className="font-[Brulia]" style={{ gridArea: "1/1", lineHeight: 1, whiteSpace: "pre-wrap", fontSize: "clamp(28px, 4vw, 45px)", opacity: phase === "chaos"  ? 1 : 0, transition: "opacity 0.75s ease" }}>
+        <p className="font-[Brulia]" style={{ gridArea: "1/1", lineHeight: "normal", whiteSpace: "pre-wrap", fontSize: "clamp(28px, 4vw, 45px)", opacity: phase === "chaos"  ? 1 : 0, transition: "opacity 0.75s ease" }}>
           Thousands of Findings. Yet Risk Remains.
         </p>
-        <p className="font-[Brulia]" style={{ gridArea: "1/1", lineHeight: 1, whiteSpace: "pre-wrap", fontSize: "clamp(28px, 4vw, 45px)", opacity: (phase === "triage" || phase === "drop") ? 1 : 0, transition: "opacity 0.75s ease 0.35s" }}>
+        <p className="font-[Brulia]" style={{ gridArea: "1/1", lineHeight: "normal", whiteSpace: "pre-wrap", fontSize: "clamp(28px, 4vw, 45px)", opacity: (phase === "triage" || phase === "drop") ? 1 : 0, transition: "opacity 0.75s ease 0.35s" }}>
           Not Every Finding is a Risk.
         </p>
-        <p className="font-[Brulia]" style={{ gridArea: "1/1", lineHeight: 1, whiteSpace: "pre-wrap", fontSize: "clamp(28px, 4vw, 45px)", opacity: textVisible ? 1 : 0, transition: "opacity 1.1s ease" }}>
+        <p className="font-[Brulia]" style={{ gridArea: "1/1", lineHeight: "normal", whiteSpace: "pre-wrap", fontSize: "clamp(28px, 4vw, 45px)", transform: "translateY(-80px)", opacity: textVisible ? 1 : 0, transition: "opacity 1.1s ease" }}>
           {"Attackers Exploit Systems,\nNot CVEs."}
         </p>
-        <p className="font-[Brulia]" style={{ gridArea: "1/1", lineHeight: 1, whiteSpace: "pre-wrap", fontSize: "clamp(28px, 4vw, 45px)", opacity: phase === "dissolve" ? 1 : 0, transition: "opacity 0.9s ease 0.2s" }}>
+        <p className="font-[Brulia]" style={{ gridArea: "1/1", lineHeight: "normal", whiteSpace: "pre-wrap", fontSize: "clamp(28px, 4vw, 45px)", opacity: phase === "dissolve" ? 1 : 0, transition: "opacity 0.9s ease 0.2s" }}>
           {"Findings Highlight Gaps.\nFixes Address Risk."}
         </p>
       </div>
@@ -268,7 +268,11 @@ function TimelineSlider({ phase, onSeek, onLiveSeek }: TimelineSliderProps) {
 
     const onMouseMove  = (e: MouseEvent)  => move(e.clientX);
     const onMouseUp    = (e: MouseEvent)  => end(e.clientX);
-    const onTouchMove  = (e: TouchEvent)  => { e.preventDefault(); move(e.touches[0].clientX); };
+    const onTouchMove  = (e: TouchEvent)  => {
+      if (!isDraggingRef.current) return;
+      e.preventDefault();
+      move(e.touches[0].clientX);
+    };
     const onTouchEnd   = (e: TouchEvent)  => end(e.changedTouches[0].clientX);
 
     document.addEventListener("mousemove",  onMouseMove);
@@ -441,6 +445,7 @@ export function HeroAnimation() {
   const [resetKey, setResetKey] = useState(0);
   const [cascadeClickActive, setCascadeClickActive] = useState(false);
   const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
 
   // Pattern node pixel positions (reported by NodeField once connections start)
   const [patternPos, setPatternPos] = useState<Record<number, { x: number; y: number }>>({});
@@ -468,22 +473,37 @@ export function HeroAnimation() {
   const isMobile = vp.w < 640;
   const isTablet = vp.w < 1024;
 
+useEffect(() => {
+  if (hasEnteredViewport) return;
+  const el = containerRef.current;
+  if (!el) return;
+  const observer = new IntersectionObserver(
+    entries => {
+      const entry = entries[0];
+      if (entry && entry.isIntersecting) {
+        setHasEnteredViewport(true);
+        observer.disconnect();
+      }
+    },
+    { threshold: 0.35, rootMargin: "0px 0px -15%" },
+  );
+  observer.observe(el);
+  // Fallback for local development: ensure animation starts even if
+  // IntersectionObserver doesn't fire (common when the hero is already visible)
+  const devFallback = setTimeout(() => {
+    setHasEnteredViewport(true);
+  }, 300);
+  return () => {
+    observer.disconnect();
+    clearTimeout(devFallback);
+  };
+}, [hasEnteredViewport]);
+
+  // Delay mounting the canvas slightly after hero enters view
   useEffect(() => {
-    if (hasEnteredViewport) return;
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      entries => {
-        const entry = entries[0];
-        if (entry && entry.isIntersecting) {
-          setHasEnteredViewport(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.35, rootMargin: "0px 0px -15%" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    if (!hasEnteredViewport) return;
+    const t = setTimeout(() => setCanvasReady(true), 350);
+    return () => clearTimeout(t);
   }, [hasEnteredViewport]);
 
   const overlayRefs = useRef<Array<HTMLDivElement | null>>(new Array(6).fill(null));
@@ -547,6 +567,42 @@ export function HeroAnimation() {
     return () => clearTimeout(t);
   }, [phase, hasEnteredViewport]);
 
+  // ── Dispatch current hero stage so external layers (e.g., Webflow text) can react ──
+  // Some environments (like Webflow embeds) attach listeners late, so we emit on
+  // every phase change AND once shortly after mount to guarantee reception.
+  const lastDispatchedStage = useRef<Phase | null>(null);
+
+  const dispatchStage = (stage: Phase) => {
+    if (typeof window === "undefined") return;
+
+    const evt = new CustomEvent("hero-stage-change", {
+      detail: { stage },
+      bubbles: true,
+    });
+
+    // Dispatch on both window and document to maximize compatibility
+    window.dispatchEvent(evt);
+    document.dispatchEvent(evt);
+
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Hero stage dispatched:", stage);
+    }
+  };
+
+  useEffect(() => {
+    if (lastDispatchedStage.current === phase) return;
+    lastDispatchedStage.current = phase;
+    dispatchStage(phase);
+  }, [phase]);
+
+  // Safety dispatch shortly after mount in case listeners attach late
+  useEffect(() => {
+    const t = setTimeout(() => {
+      dispatchStage(phase);
+    }, 120);
+    return () => clearTimeout(t);
+  }, []);
+
   const handleConnectionsComplete = useCallback(() => {
     setPhase("formed");
     // Keep patternPos intact so insight labels have positions to render
@@ -581,7 +637,7 @@ export function HeroAnimation() {
       className="relative w-full h-full overflow-hidden"
       style={{
         background: "radial-gradient(ellipse at 52% 44%, #1a0830 0%, #0b0617 45%, #07070f 100%)",
-        transform: "translateY(-40px)",
+        touchAction: "pan-y",
       }}
     >
       {/* Ambient glow */}
@@ -593,7 +649,7 @@ export function HeroAnimation() {
       />
 
       {/* Canvas layer — keyed so it remounts cleanly on commit seeks */}
-      {hasEnteredViewport && (
+      {hasEnteredViewport && canvasReady && (
         <NodeField
           key={resetKey}
           dropping={isDropping}
