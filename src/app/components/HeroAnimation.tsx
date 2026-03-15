@@ -581,6 +581,7 @@ export function HeroAnimation() {
       className="relative w-full h-full overflow-hidden"
       style={{
         background: "radial-gradient(ellipse at 52% 44%, #1a0830 0%, #0b0617 45%, #07070f 100%)",
+        transform: "translateY(-40px)",
       }}
     >
       {/* Ambient glow */}

@@ -12,6 +12,8 @@ const CURSOR_START_Y = 260;
 const CURSOR_OVER_X  = 326;
 const CURSOR_OVER_Y  = 66;
 const CURSOR_PRESS_Y = 70;
+const PANEL_BASE_WIDTH = 420;
+const PANEL_MIN_SCALE = 0.72;
 
 type CursorStep = "hidden" | "start" | "moving" | "pressing" | "released";
 
@@ -60,6 +62,7 @@ export function CascadePanel({ visible, clicking }: CascadePanelProps) {
   const [shownCount, setShownCount] = useState(0);
   const [topMerged, setTopMerged]   = useState(false);
   const [cursorStep, setCursorStep] = useState<CursorStep>("hidden");
+  const [panelScale, setPanelScale] = useState(1);
 
   useEffect(() => {
     if (!visible) {
@@ -84,6 +87,19 @@ export function CascadePanel({ visible, clicking }: CascadePanelProps) {
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, [clicking]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateScale = () => {
+      const usableWidth = Math.max(320, window.innerWidth - 48);
+      const nextScale = Math.min(1, Math.max(PANEL_MIN_SCALE, usableWidth / PANEL_BASE_WIDTH));
+      setPanelScale(nextScale);
+    };
+
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, []);
+
   const isPressing = cursorStep === "pressing";
   const showCursor = cursorStep !== "hidden";
 
@@ -101,13 +117,16 @@ export function CascadePanel({ visible, clicking }: CascadePanelProps) {
     i === 0 ? topMerged : it.initialStatus === "applied",
   ).length;
 
+  const visibilityScale = visible ? 1 : 0.92;
+  const combinedScale = panelScale * visibilityScale;
+
   return (
     <div
       style={{
         position: "absolute",
         left: "50%",
         top: "50%",
-        transform: `translate(-50%, -50%) scale(${visible ? 1 : 0.92})`,
+        transform: `translate(-50%, -50%) scale(${combinedScale})`,
         opacity:    visible ? 1 : 0,
         transition: "opacity 0.55s ease, transform 0.55s cubic-bezier(0.34,1.4,0.64,1)",
         pointerEvents: visible ? "auto" : "none",
@@ -130,7 +149,7 @@ export function CascadePanel({ visible, clicking }: CascadePanelProps) {
         style={{
           background: "rgba(5,8,20,0.94)",
           borderRadius: "13px",
-          width: "420px",
+          width: PANEL_BASE_WIDTH,
           border: "1px solid rgba(168,85,247,0.16)",
           backdropFilter: "blur(22px)",
           WebkitBackdropFilter: "blur(22px)",
