@@ -24,12 +24,12 @@ const INSIGHT_LABELS = [
 const FORMED_TEXT_DELAY = 1950;
 
 const OVERLAY_DATA = [
-  { category: "VULNERABILITY",    title: "CVE-2023-0006: SQL Injection",     status: "Critical",  statusColor: "#ef4444" },
+  { category: "VULNERABILITY",    title: "CVE-2023-34362: SQL Injection in MOVEit",     status: "Critical",  statusColor: "#ef4444" },
   { category: "MISCONFIGURATION", title: "Public S3 Bucket Exposed",          status: "High Risk", statusColor: "#f97316" },
   { category: "SECRET EXPOSURE",  title: "AWS Key Leaked in Git Repo",        status: "Critical",  statusColor: "#ef4444" },
   { category: "ENTITLEMENT",      title: "Overprivileged IAM Role Access",    status: "High Risk", statusColor: "#f97316" },
-  { category: "VULNERABILITY",    title: "CVE-2024-1182: Log4j RCE Exploit", status: "Critical",  statusColor: "#ef4444" },
-  { category: "VULNERABILITY",    title: "CVE-2023-4891: OpenSSL Overflow",  status: "High Risk", statusColor: "#f97316" },
+  { category: "VULNERABILITY",    title: "CVE-2021-44228: Log4j RCE Exploit", status: "Critical",  statusColor: "#ef4444" },
+  { category: "VULNERABILITY",    title: "CVE-2023-0286: OpenSSL Type Confusion",  status: "High Risk", statusColor: "#f97316" },
 ];
 const OVERLAY_DELAYS = [550, 1050, 1600, 850, 1350, 1950];
 
@@ -200,7 +200,13 @@ function HeroText({ phase, textVisible }: { phase: Phase; textVisible: boolean }
         zIndex: 20,
       }}
     >
-      <div style={{ display: "grid", width: "100%" }}>
+      <div
+        style={{
+          display: "grid",
+          width: "100%",
+          minHeight: "120px",
+        }}
+      >
         <p className="font-[Brulia]" style={{ gridArea: "1/1", lineHeight: "normal", whiteSpace: "pre-wrap", fontSize: "clamp(28px, 4vw, 45px)", opacity: phase === "chaos"  ? 1 : 0, transition: "opacity 0.75s ease" }}>
           Thousands of Findings. Yet Risk Remains.
         </p>
@@ -444,8 +450,6 @@ export function HeroAnimation() {
   const [phase,    setPhase]    = useState<Phase>("chaos");
   const [resetKey, setResetKey] = useState(0);
   const [cascadeClickActive, setCascadeClickActive] = useState(false);
-  const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
-  const [canvasReady, setCanvasReady] = useState(false);
 
   // Pattern node pixel positions (reported by NodeField once connections start)
   const [patternPos, setPatternPos] = useState<Record<number, { x: number; y: number }>>({});
@@ -473,38 +477,7 @@ export function HeroAnimation() {
   const isMobile = vp.w < 640;
   const isTablet = vp.w < 1024;
 
-useEffect(() => {
-  if (hasEnteredViewport) return;
-  const el = containerRef.current;
-  if (!el) return;
-  const observer = new IntersectionObserver(
-    entries => {
-      const entry = entries[0];
-      if (entry && entry.isIntersecting) {
-        setHasEnteredViewport(true);
-        observer.disconnect();
-      }
-    },
-    { threshold: 0.35, rootMargin: "0px 0px -15%" },
-  );
-  observer.observe(el);
-  // Fallback for local development: ensure animation starts even if
-  // IntersectionObserver doesn't fire (common when the hero is already visible)
-  const devFallback = setTimeout(() => {
-    setHasEnteredViewport(true);
-  }, 300);
-  return () => {
-    observer.disconnect();
-    clearTimeout(devFallback);
-  };
-}, [hasEnteredViewport]);
-
-  // Delay mounting the canvas slightly after hero enters view
-  useEffect(() => {
-    if (!hasEnteredViewport) return;
-    const t = setTimeout(() => setCanvasReady(true), 350);
-    return () => clearTimeout(t);
-  }, [hasEnteredViewport]);
+  // (REMOVED: IntersectionObserver and canvasReady delay logic)
 
   const overlayRefs = useRef<Array<HTMLDivElement | null>>(new Array(6).fill(null));
   const triageRefs  = useRef<Array<HTMLDivElement | null>>(new Array(6).fill(null));
@@ -522,18 +495,20 @@ useEffect(() => {
           ? `translate(calc(-100% - 16px), -50%)`
           : `translate(16px, -50%)`;
 
-        const el = overlayRefs.current[i];
-        if (el) {
-          el.style.left      = `${pt.x}px`;
-          el.style.top       = `${pt.y}px`;
-          el.style.transform = transform;
-        }
-        const tel = triageRefs.current[i];
-        if (tel) {
-          tel.style.left      = `${pt.x}px`;
-          tel.style.top       = `${pt.y}px`;
-          tel.style.transform = transform;
-        }
+          const el = overlayRefs.current[i];
+          if (el) {
+            el.style.left      = `${pt.x}px`;
+            el.style.top       = `${pt.y}px`;
+            el.style.transform = transform;
+            el.style.opacity   = "1";
+          }
+          const tel = triageRefs.current[i];
+          if (tel) {
+            tel.style.left      = `${pt.x}px`;
+            tel.style.top       = `${pt.y}px`;
+            tel.style.transform = transform;
+            tel.style.opacity   = "1";
+          }
       });
     },
     [],
@@ -541,7 +516,6 @@ useEffect(() => {
 
   // ── Single effect drives ALL phase auto-advancement ───────────────────────
   useEffect(() => {
-    if (!hasEnteredViewport) return undefined;
     let t: ReturnType<typeof setTimeout> | undefined;
     if (phase === "chaos")     t = setTimeout(() => setPhase("triage"),    4000);
     if (phase === "triage")    t = setTimeout(() => setPhase("drop"),      5200);
@@ -551,21 +525,21 @@ useEffect(() => {
     if (phase === "cascade")   t = setTimeout(() => setPhase("dissolve"),  4800);
     if (phase === "dissolve")  t = setTimeout(() => setPhase("final"),     2600);
     return () => { if (t !== undefined) clearTimeout(t); };
-  }, [phase, hasEnteredViewport]);
+  }, [phase]);
 
   // ── Delayed text reveal during "formed" phase ─────────────────────────────
   useEffect(() => {
-    if (!hasEnteredViewport || phase !== "formed") { setTextVisible(false); return; }
+    if (phase !== "formed") { setTextVisible(false); return; }
     const t = setTimeout(() => setTextVisible(true), FORMED_TEXT_DELAY);
     return () => clearTimeout(t);
-  }, [phase, hasEnteredViewport]);
+  }, [phase]);
 
   // ── Cascade sub-timer: trigger cursor click 2.3s into cascade phase ───────
   useEffect(() => {
-    if (!hasEnteredViewport || phase !== "cascade") { setCascadeClickActive(false); return; }
+    if (phase !== "cascade") { setCascadeClickActive(false); return; }
     const t = setTimeout(() => setCascadeClickActive(true), 2300);
     return () => clearTimeout(t);
-  }, [phase, hasEnteredViewport]);
+  }, [phase]);
 
   // ── Dispatch current hero stage so external layers (e.g., Webflow text) can react ──
   // Some environments (like Webflow embeds) attach listeners late, so we emit on
@@ -638,6 +612,8 @@ useEffect(() => {
       style={{
         background: "radial-gradient(ellipse at 52% 44%, #1a0830 0%, #0b0617 45%, #07070f 100%)",
         touchAction: "pan-y",
+        opacity: 1,
+        transition: "opacity 0.6s ease",
       }}
     >
       {/* Ambient glow */}
@@ -649,27 +625,32 @@ useEffect(() => {
       />
 
       {/* Canvas layer — keyed so it remounts cleanly on commit seeks */}
-      {hasEnteredViewport && canvasReady && (
-        <NodeField
-          key={resetKey}
-          dropping={isDropping}
-          forming={isForming}
-          onConnectionsComplete={handleConnectionsComplete}
-          highlightNodeIds={isHighlight ? HIGHLIGHT_IDS : []}
-          dimmed={phase === "final"}
-          dissolving={isDissolving}
-          trackCount={6}
-          showTrackedRings={phase === "chaos" || phase === "triage"}
-          onFramePositions={handleFramePositions}
-          onPatternPositions={handlePatternPositions}
-          keepTrackedIndices={[0, 3]}
-        />
-      )}
+      <NodeField
+        key={resetKey}
+        dropping={isDropping}
+        forming={isForming}
+        onConnectionsComplete={handleConnectionsComplete}
+        highlightNodeIds={isHighlight ? HIGHLIGHT_IDS : []}
+        dimmed={phase === "final"}
+        dissolving={isDissolving}
+        trackCount={6}
+        showTrackedRings={phase === "chaos" || phase === "triage"}
+        onFramePositions={handleFramePositions}
+        onPatternPositions={handlePatternPositions}
+        keepTrackedIndices={[0, 3]}
+      />
 
       {/* Chaos-phase overlay cards */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ zIndex: 10, opacity: phase === "chaos" ? 1 : 0, transition: "opacity 0.55s ease" }}
+        style={{
+          zIndex: 10,
+          opacity: phase === "chaos" ? 1 : 0,
+          visibility: phase === "chaos" ? "visible" : "hidden",
+          transition: "opacity 0.55s ease",
+          willChange: "opacity",
+          contain: "layout paint",
+        }}
       >
         <style>{`
           @keyframes overlayPop {
@@ -690,7 +671,7 @@ useEffect(() => {
           }
         `}</style>
         {OVERLAY_DATA.map((data, i) => (
-          <div key={i} ref={el => { overlayRefs.current[i] = el; }} style={{ position: "absolute", left: -9999, top: -9999 }}>
+          <div key={i} ref={el => { overlayRefs.current[i] = el; }} style={{ position: "absolute", left: "0px", top: "0px", opacity: 0 }}>
             <div style={{ animation: `overlayPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) ${OVERLAY_DELAYS[i]}ms both`, transformOrigin: "left center" }}>
               <div style={{ background: "rgba(6,8,24,0.90)", border: "1px solid rgba(255,255,255,0.13)", borderRadius: "8px", padding: "10px 14px", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", minWidth: "188px", maxWidth: "224px", boxShadow: "0 4px 24px rgba(0,0,0,0.5)" }}>
                 <p style={{ fontFamily: "Menlo, monospace", fontSize: "8.5px", letterSpacing: "0.13em", textTransform: "uppercase", color: "rgba(255,255,255,0.36)", margin: "0 0 5px" }}>{data.category}</p>
@@ -708,10 +689,17 @@ useEffect(() => {
       {/* Triage-phase overlay cards — "Not Exploitable" verdicts */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ zIndex: 10, opacity: phase === "triage" ? 1 : 0, transition: "opacity 0.6s ease" }}
+        style={{
+          zIndex: 10,
+          opacity: phase === "triage" ? 1 : 0,
+          visibility: phase === "triage" ? "visible" : "hidden",
+          transition: "opacity 0.6s ease",
+          willChange: "opacity",
+          contain: "layout paint",
+        }}
       >
         {TRIAGE_DATA.map((data, i) => (
-          <div key={i} ref={el => { triageRefs.current[i] = el; }} style={{ position: "absolute", left: -9999, top: -9999 }}>
+          <div key={i} ref={el => { triageRefs.current[i] = el; }} style={{ position: "absolute", left: "0px", top: "0px", opacity: 0 }}>
             <div style={{ animation: phase === "triage" ? `triagePop 0.38s cubic-bezier(0.34, 1.4, 0.64, 1) ${TRIAGE_DELAYS[i]}ms both` : "none", transformOrigin: "left center" }}>
               <div style={{ background: "rgba(4,12,20,0.92)", border: `1px solid ${data.exploitable ? "rgba(239,68,68,0.28)" : "rgba(34,197,94,0.22)"}`, borderRadius: "8px", padding: "10px 14px", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", minWidth: "210px", maxWidth: "248px", boxShadow: `0 4px 28px rgba(0,0,0,0.55), 0 0 0 1px ${data.exploitable ? "rgba(239,68,68,0.10)" : "rgba(34,197,94,0.08)"}` }}>
                 {/* Category */}
@@ -726,7 +714,7 @@ useEffect(() => {
                       <TypewriterText
                         text={data.reason1}
                         startDelay={data.r1Delay}
-                        active={hasEnteredViewport && phase === "triage"}
+                        active={phase === "triage"}
                       />
                     </span>
                   </div>
@@ -736,7 +724,7 @@ useEffect(() => {
                       <TypewriterText
                         text={data.reason2}
                         startDelay={data.r2Delay}
-                        active={hasEnteredViewport && phase === "triage"}
+                        active={phase === "triage"}
                       />
                     </span>
                   </div>
@@ -966,11 +954,13 @@ useEffect(() => {
       <FinalHero visible={phase === "final"} />
 
       {/* ── Timeline scrubber ─────────────────────────────────────────────── */}
+      {/*
       <TimelineSlider
         phase={phase}
         onSeek={seekTo}
         onLiveSeek={liveSeek}
       />
+      */}
     </div>
   );
 }

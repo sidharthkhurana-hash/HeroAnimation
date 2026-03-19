@@ -68,9 +68,9 @@
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
-    "@webflow/data-types": "^1.2.1",
-    "@webflow/react": "^1.2.1",
-    "@webflow/webflow-cli": "^1.12.6",
+    "@webflow/data-types": "^1.2.2",
+    "@webflow/react": "^1.2.2",
+    "@webflow/webflow-cli": "^1.13.0",
     "tailwindcss": "4.1.12",
     "vite": "6.3.5"
   },

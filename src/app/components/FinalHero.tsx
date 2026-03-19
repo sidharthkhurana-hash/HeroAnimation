@@ -212,7 +212,7 @@ function DashboardMockup() {
                 </span>
               ))}
             </div>
-            {/* Rows — trimmed to 3 */}
+            {/* Rows — trimmed to 4 */}
             {[
               {
                 id: "CVE-2024-23897",
@@ -237,6 +237,14 @@ function DashboardMockup() {
                 sev: "HIGH",
                 cvss: "8.8",
                 state: "done",
+              },
+              {
+                id: "CVE-2024-1111",
+                desc: "OpenSSL Buffer Mismanagement",
+                svc: "edge-gateway",
+                sev: "HIGH",
+                cvss: "8.1",
+                state: "fix",
               },
             ].map((row, i) => {
               const sc = row.sev === "CRITICAL" ? "#ef4444" : row.sev === "HIGH" ? "#f97316" : "#f59e0b";
@@ -348,7 +356,7 @@ function DashboardMockup() {
           </div>
 
           {/* Right: AI Agent panel */}
-          <div style={{ background: "#090919" }}>
+          <div style={{ background: "#090919", height: "100%", overflow: "hidden" }}>
             <div style={{ padding: "7px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <span style={{ fontSize: "9px", fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>
                 AI Agent Activity
@@ -360,7 +368,7 @@ function DashboardMockup() {
               { name: "Remediation Agent", msg: "Generated PR #847", time: "12s", active: true },
               { name: "Remediation Agent", msg: "Merged fix — CVE-2023-4863", time: "1m", active: false },
               { name: "Triage Agent", msg: "Cleared 34 false positives", time: "3m", active: false },
-            ].map((agent, index) => (
+            ].slice(0, 4).map((agent, index) => (
               <div
                 key={`${agent.name}-${agent.time}-${index}`}
                 style={{ padding: "6px 12px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
@@ -395,36 +403,6 @@ function DashboardMockup() {
                 </p>
               </div>
             ))}
-            {/* Remediation velocity mini chart */}
-            <div style={{ padding: "8px 12px" }}>
-              <div
-                style={{
-                  fontSize: "7px",
-                  color: "rgba(255,255,255,0.3)",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  marginBottom: "7px",
-                }}
-              >
-                Remediation Velocity
-              </div>
-              {[{ l: "Mon", p: 28 }, { l: "Tue", p: 44 }, { l: "Wed", p: 35 }, { l: "Thu", p: 61 }, { l: "Fri", p: 79 }, { l: "Sat", p: 68 }, { l: "Sun", p: 94 }].map((b) => (
-                <div key={b.l} style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "4px" }}>
-                  <span style={{ fontSize: "6px", color: "rgba(255,255,255,0.25)", width: "14px" }}>{b.l}</span>
-                  <div style={{ flex: 1, height: "5px", background: "rgba(255,255,255,0.07)", borderRadius: "2px", overflow: "hidden" }}>
-                    <div
-                      style={{
-                        width: `${b.p}%`,
-                        height: "100%",
-                        background: "linear-gradient(90deg,#2e3192,#8c28dc)",
-                        borderRadius: "2px",
-                      }}
-                    />
-                  </div>
-                  <span style={{ fontSize: "6px", color: "rgba(255,255,255,0.25)", width: "20px", textAlign: "right" }}>{b.p}%</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
